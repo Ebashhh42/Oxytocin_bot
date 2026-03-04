@@ -37,7 +37,7 @@ PORT = int(os.environ.get("PORT", 8443))
 MAIN_KEYBOARD = ReplyKeyboardMarkup(
     [
         [KeyboardButton("Give me a cat 🐱"), KeyboardButton("Give me a quote ✨")],
-        [KeyboardButton("Give me an activity 🌟")],
+        [KeyboardButton("Give me an activity 🌟"), KeyboardButton("Tell me a joke 😄")],
         [KeyboardButton("Settings ⚙️")],
     ],
     resize_keyboard=True,
@@ -110,6 +110,11 @@ async def cmd_activity(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
     )
 
 
+async def cmd_joke(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    joke = await sched.fetch_joke()
+    await update.message.reply_text(joke, parse_mode="Markdown")
+
+
 async def cmd_addquote(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     quote = " ".join(context.args).strip()
     if not quote:
@@ -161,6 +166,8 @@ async def text_button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE
         await cmd_quote(update, context)
     elif text == "Give me an activity 🌟":
         await cmd_activity(update, context)
+    elif text == "Tell me a joke 😄":
+        await cmd_joke(update, context)
     elif text == "Settings ⚙️":
         await cmd_settings(update, context)
 
@@ -241,6 +248,7 @@ def main() -> None:
     app.add_handler(CommandHandler("cat", cmd_cat))
     app.add_handler(CommandHandler("quote", cmd_quote))
     app.add_handler(CommandHandler("activity", cmd_activity))
+    app.add_handler(CommandHandler("joke", cmd_joke))
     app.add_handler(CommandHandler("addquote", cmd_addquote))
     app.add_handler(CommandHandler("myquotes", cmd_myquotes))
     app.add_handler(CommandHandler("settings", cmd_settings))

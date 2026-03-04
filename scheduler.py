@@ -36,6 +36,24 @@ async def fetch_cat_image() -> str | None:
         return None
 
 
+async def fetch_joke() -> str:
+    try:
+        async with httpx.AsyncClient() as client:
+            resp = await client.get(
+                "https://v2.jokeapi.dev/joke/Any",
+                params={"safe-mode": True, "blacklistFlags": "nsfw,racist,sexist"},
+                timeout=10,
+            )
+            resp.raise_for_status()
+            data = resp.json()
+            if data["type"] == "twopart":
+                return f"{data['setup']}\n\n_{data['delivery']}_ 😄"
+            return f"{data['joke']} 😄"
+    except Exception as exc:
+        logger.error("Failed to fetch joke: %s", exc)
+        return "Why don't scientists trust atoms? Because they make up everything! 😄"
+
+
 async def fetch_quote() -> str:
     try:
         async with httpx.AsyncClient() as client:
