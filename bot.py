@@ -3,12 +3,14 @@ import logging
 import os
 
 from dotenv import load_dotenv
-from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
+from telegram import InlineKeyboardButton, InlineKeyboardMarkup, KeyboardButton, ReplyKeyboardMarkup, Update
 from telegram.ext import (
     Application,
     CallbackQueryHandler,
     CommandHandler,
     ContextTypes,
+    MessageHandler,
+    filters,
 )
 
 import database
@@ -30,6 +32,16 @@ PORT = int(os.environ.get("PORT", 8443))
 # ---------------------------------------------------------------------------
 # Keyboard helpers
 # ---------------------------------------------------------------------------
+
+MAIN_KEYBOARD = ReplyKeyboardMarkup(
+    [
+        [KeyboardButton("Give me a cat 🐱"), KeyboardButton("Give me a quote ✨")],
+        [KeyboardButton("Settings ⚙️")],
+    ],
+    resize_keyboard=True,
+    is_persistent=True,
+)
+
 
 def _settings_keyboard(notifications_enabled: bool) -> InlineKeyboardMarkup:
     notif_label = "🔔 Notifications: ON" if notifications_enabled else "🔕 Notifications: OFF"
@@ -67,12 +79,11 @@ async def cmd_start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         "• A cute cat photo 🐱\n"
         "• An inspirational quote ✨\n"
         "• A reminder to spread kindness 💛\n\n"
-        "*Commands:*\n"
-        "/cat — Get a cat photo right now\n"
+        "Use the buttons below or these commands:\n"
         "/addquote <text> — Save an inspiring quote\n"
-        "/myquotes — View your saved quotes\n"
-        "/settings — Configure notifications",
+        "/myquotes — View your saved quotes",
         parse_mode="Markdown",
+        reply_markup=MAIN_KEYBOARD,
     )
 
 
@@ -82,6 +93,11 @@ async def cmd_cat(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         await update.message.reply_photo(photo=cat_url, caption="Here's your cat! 🐱")
     else:
         await update.message.reply_text("Couldn't fetch a cat right now — try again in a moment!")
+
+
+async def cmd_quote(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    quote = await sched.fetch_quote()
+    await update.message.reply_text(f"✨ *Quote for you:*\n{quote}", parse_mode="Markdown")
 
 
 async def cmd_addquote(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -121,6 +137,20 @@ async def cmd_settings(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
         parse_mode="Markdown",
         reply_markup=_settings_keyboard(user_data["notifications_enabled"]),
     )
+
+
+# ---------------------------------------------------------------------------
+# Reply keyboard button handler
+# ---------------------------------------------------------------------------
+
+async def text_button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    text = update.message.text
+    if text == "Give me a cat 🐱":
+        await cmd_cat(update, context)
+    elif text == "Give me a quote ✨":
+        await cmd_quote(update, context)
+    elif text == "Settings ⚙️":
+        await cmd_settings(update, context)
 
 
 # ---------------------------------------------------------------------------
@@ -197,10 +227,12 @@ def main() -> None:
 
     app.add_handler(CommandHandler("start", cmd_start))
     app.add_handler(CommandHandler("cat", cmd_cat))
+    app.add_handler(CommandHandler("quote", cmd_quote))
     app.add_handler(CommandHandler("addquote", cmd_addquote))
     app.add_handler(CommandHandler("myquotes", cmd_myquotes))
     app.add_handler(CommandHandler("settings", cmd_settings))
     app.add_handler(CallbackQueryHandler(callback_handler))
+    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, text_button_handler))
 
     app.run_webhook(
         listen="0.0.0.0",
