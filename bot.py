@@ -1,3 +1,4 @@
+import asyncio
 import logging
 import os
 
@@ -210,4 +211,7 @@ def main() -> None:
 
 
 if __name__ == "__main__":
+    # Python 3.12+ no longer auto-creates an event loop, so we set one explicitly.
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
     main()
