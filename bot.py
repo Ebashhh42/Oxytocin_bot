@@ -15,6 +15,7 @@ from telegram.ext import (
 
 import database
 import scheduler as sched
+from activities import get_random_activity
 
 load_dotenv()
 
@@ -36,6 +37,7 @@ PORT = int(os.environ.get("PORT", 8443))
 MAIN_KEYBOARD = ReplyKeyboardMarkup(
     [
         [KeyboardButton("Give me a cat 🐱"), KeyboardButton("Give me a quote ✨")],
+        [KeyboardButton("Give me an activity 🌟")],
         [KeyboardButton("Settings ⚙️")],
     ],
     resize_keyboard=True,
@@ -100,6 +102,14 @@ async def cmd_quote(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     await update.message.reply_text(f"✨ *Quote for you:*\n{quote}", parse_mode="Markdown")
 
 
+async def cmd_activity(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    category, activity = get_random_activity()
+    await update.message.reply_text(
+        f"🌟 *Oxytocin activity — {category}*\n\n{activity}",
+        parse_mode="Markdown",
+    )
+
+
 async def cmd_addquote(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     quote = " ".join(context.args).strip()
     if not quote:
@@ -149,6 +159,8 @@ async def text_button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE
         await cmd_cat(update, context)
     elif text == "Give me a quote ✨":
         await cmd_quote(update, context)
+    elif text == "Give me an activity 🌟":
+        await cmd_activity(update, context)
     elif text == "Settings ⚙️":
         await cmd_settings(update, context)
 
@@ -228,6 +240,7 @@ def main() -> None:
     app.add_handler(CommandHandler("start", cmd_start))
     app.add_handler(CommandHandler("cat", cmd_cat))
     app.add_handler(CommandHandler("quote", cmd_quote))
+    app.add_handler(CommandHandler("activity", cmd_activity))
     app.add_handler(CommandHandler("addquote", cmd_addquote))
     app.add_handler(CommandHandler("myquotes", cmd_myquotes))
     app.add_handler(CommandHandler("settings", cmd_settings))
